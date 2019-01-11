@@ -5,41 +5,41 @@ const moment = require('moment')
 const {prompt} = require('./prompts');
 const getRandomValue = (min, max) => Math.random() * (max - min + 1) + min;
 
-const deviceLevelRoundUps = [ //need prompts
+const deviceLevelRoundUps = [ //needs prompts                            //TODO: (have Hh, 5. need other roundups)
   '_OptHr', 
   '_StdHr', 
   '_MsKw'
 ];
-const chillerDeviceLevelRoundUps = [  //need prompts
+const chillerDeviceLevelRoundUps = [  //needs prompts                    //TODO: (have Hh, 6. need other roundups)
   '_MsTr',
   '_MsEff'
 ];
-const reducedEqLevelRoundUps = [
+const reducedEqLevelRoundUps = [                                         //TODO: (have Hh, 7. need other roundups)
   '_MsKw',  //sum
   '_OptHr', //sum
   '_StdHr'  //sum
 ];
-const reducedChillerEqLevelRoundUps = [
+const reducedChillerEqLevelRoundUps = [                                  //TODO: (have Hh, 8. need other roundups)
   '_MsEff'  //avg
 ];
-const eqLevelCalculatedTrends = [
+const eqLevelCalculatedTrends = [                                        //TODO: (12. once gather Hms, can calculate)
   '_BlKwHm' //based off of '_MsKwHm'
 ];
-const reducedSystemLevelRoundUps = [
+const reducedSystemLevelRoundUps = [                                     //TODO: (1. need to add data for Hh in same ways as done for eqLevel trends, & 9. need other roundups)
   'System_MsKw', //sum
   'System_OptHr', //sum
   'System_StdHr', //sum
 ];
-const reducedChillerSystemLevelRoundUps = [
+const reducedChillerSystemLevelRoundUps = [                              //TODO: (2. need to add data for Hh in same ways as done for eqLevel trends, & 10. need other roundups)
   'System_MsTr' //reduced from chillers' devices round ups  //sum
 ];
-const calculatedSystemLevelRoundUps = [ //need prompts
+const calculatedSystemLevelRoundUps = [ //needs prompts                  //TODO: (3. need to get data & 11. need roundups)
   'System_MsEff', //reduced from chillers eq level round up plus some extra amount for 'Auxillary Equipment'  //avg
   'System_oacDryBulb' //non-reduced round-up
 ];
-const systemLevelCalculatedTrends = [
-  'System_Bur',   //COV   //need prompt
-  'System_CorporateCurrencyExchange',    //COV    //need prompt
+const systemLevelCalculatedTrends = [                                    //TODO: (4. first two can be direct write-ins & 13. 2nd two can be calculated once gathered Hms)
+  'System_Bur',   //COV   //needs prompt  
+  'System_CorporateCurrencyExchange',    //COV    //needs prompt
   'System_BlEffHm',  //based off of 'System_MsEffHm'
   'System_PrEffHm',	  //based off of 'System_MsEffHm'
 ];
@@ -307,26 +307,80 @@ prompt(questions)
 
     //Make trend data
     const trends = [];
+    // EXAMPLE:
     // trends.push({
     //   name: trendNAME,
     //   data: trendDATA
     // });
 
-
+    const reducedEqLevelRoundUpData = {};
+    const reducedChillerEqLevelRoundUpData = {};
 
     // get deviceLevelRoundUps Hh
-    eqGroups.forEach(eqGroup => {
-      devicesByGroup[eqGroup].forEach(device => {
-        deviceLevelRoundUps.forEach(deviceLevelRoundUpTrend => {
-          const trendObj = {name: device + deviceLevelRoundUpTrend};
-          trendObj.data = msHhDateRows.map(hourlyStamp => {
-            const info = trendsInfo[deviceLevelRoundUpTrend][eqGroup][hourlyStamp.format('MMM')];
+    deviceLevelRoundUps.forEach(partialTrendName => {
+      reducedEqLevelRoundUpData[partialTrendName] = {};
+
+      eqGroups.forEach(eqGroup => {
+        reducedEqLevelRoundUpData[partialTrendName][eqGroup] = [];
+
+        devicesByGroup[eqGroup].forEach(device => {
+          const trendObj = {name: device + partialTrendName + 'Hh'};
+          trendObj.data = msHhDateRows.map((hourlyStamp, stampIndex) => {
+            const info = trendsInfo[partialTrendName][eqGroup][hourlyStamp.format('MMM')];
             const value = getRandomValue(info.min, info.max);
+            if (!reducedEqLevelRoundUpData[partialTrendName][eqGroup][stampIndex]) reducedEqLevelRoundUpData[partialTrendName][eqGroup][stampIndex] = {sum: 0, date: hourlyStamp.format('x')};
+            reducedEqLevelRoundUpData[partialTrendName][eqGroup][stampIndex].sum += value;
+      
             return hourlyStamp.format('x') + ',' + value;
           });
+          trends.push(trendObj);
         });
       });
     });
+
+
+    // get chillerDeviceLevelRoundUps Hh
+    chillerDeviceLevelRoundUps.forEach(partialTrendName => {
+      reducedChillerEqLevelRoundUpData[partialTrendName] = {};
+
+      devicesByGroup.Chillers.forEach(device => {
+        const trendObj = {name: device + partialTrendName + 'Hh'};
+        trendObj.data = msHhDateRows.map((hourlyStamp, stampIndex) => {
+          const info = trendsInfo[partialTrendName][hourlyStamp.format('MMM')];
+          const value = getRandomValue(info.min, info.max);
+          if (!reducedChillerEqLevelRoundUpData[partialTrendName][stampIndex]) reducedChillerEqLevelRoundUpData[partialTrendName][stampIndex] = {sum: 0, count: 0, date: hourlyStamp.format('x')};
+          reducedChillerEqLevelRoundUpData[partialTrendName][stampIndex].count++;
+          reducedChillerEqLevelRoundUpData[partialTrendName][stampIndex].sum += value;
+
+          return hourlyStamp.format('x') + ',' + value;
+        });
+        trends.push(trendObj);
+      });
+    });
+
+    
+    //get reducedEqLevelRoundUps (sums)
+    reducedEqLevelRoundUps.forEach(partialTrendName => {
+      eqGroups.forEach(eqGroup => {
+        const trendObj = {
+          name: eqGroup + partialTrendName + 'Hh',
+          data: reducedEqLevelRoundUpData[partialTrendName][eqGroup].map(hourlyData => hourlyData.date + ',' + hourlyData.sum)
+        };
+        trends.push(trendObj);
+      });
+    });
+
+    //get reducedChillerEqLevelRoundUps (avgs)
+    reducedChillerEqLevelRoundUps.forEach(partialTrendName => {
+      eqGroups.forEach(eqGroup => {
+        const trendObj = {
+          name: eqGroup + partialTrendName + 'Hh',
+          data: reducedChillerEqLevelRoundUpData[partialTrendName].map(hourlyData => hourlyData.date + ',' + (hourlyData.sum / hourlyData.count))
+        };
+        trends.push(trendObj);
+      });
+    });
+
 
     
 
@@ -335,10 +389,7 @@ prompt(questions)
 
 
 
-
-
-
-
+    //TODO: MAKE TRENDS INTO CSVs :)
     //MAKE CSVs
     trends.forEach(trend => {
       //WRITE A CSV FILE WITH NAME AS TITLE AND DATA AS CONTENT
