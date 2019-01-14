@@ -3,8 +3,9 @@
 const fs = require('fs');
 const moment = require('moment')
 const {prompt} = require('./prompts');
+const {fakePrompt} = require('./fakePrompt');
 const getRandomValue = (min, max) => Math.random() * (max - min + 1) + min;
-
+console.log('YOU ARE AT A')
 const deviceLevelRoundUps = [ //needs prompts                           
   '_OptHr', //sum
   '_StdHr', //sum //calculated based on _OptHr
@@ -26,26 +27,27 @@ const eqLevelCalculatedTrends = [
   '_BlKwHm' //based off of '_MsKwHm' //sum
 ];
 const reducedSystemLevelRoundUps = [                                    
-  'System_MsKw', //sum
-  'System_OptHr', //sum
-  'System_StdHr', //sum
+  '_MsKw', //sum
+  '_OptHr', //sum
+  '_StdHr', //sum
 ];
 const reducedChillerSystemLevelRoundUps = [                             
-  'System_MsTr' //reduced from chillers' devices round ups  //sum
+  '_MsTr' //reduced from chillers' devices round ups  //sum
 ];
 const calculatedSystemLevelRoundUps = [ //needs prompts                  
-  'System_MsEff', //reduced from chillers eq level round up plus some extra amount for 'Auxillary Equipment'  //avg
-  'System_oacDryBulb' //non-reduced round-up  //avg
+  '_MsEff', //reduced from chillers eq level round up plus some extra amount for 'Auxillary Equipment'  //avg
+  '_oacDryBulb' //non-reduced round-up  //avg
 ];
 const systemLevelCalculatedTrends = [                              
-  'System_Bur',   //COV   //needs prompt  
-  'System_CorporateCurrencyExchange',    //COV    //needs prompt
-  'System_BlEffHm',  //based off of 'System_MsEffHm'  //avg
-  'System_PrEffHm',	  //based off of 'System_MsEffHm' //avg
+  '_Bur',   //COV   //needs prompt  
+  '_CorporateCurrencyExchange',    //COV    //needs prompt
+  '_BlEffHm',  //based off of 'System_MsEffHm'  //avg
+  '_PrEffHm',	  //based off of 'System_MsEffHm' //avg
 ];
 
 
 
+console.log('YOU ARE AT B')
 
 const trendsInfo = {};
 deviceLevelRoundUps.forEach(trend => {
@@ -211,10 +213,11 @@ chillerDeviceLevelRoundUps.forEach(trend => { //i
 });
 
 
+console.log('YOU ARE AT C')
 
 
 console.log('Welcome to the Create Your Own History Trends App! \n I have a lot of questions for you. Take your time because you cannot go back! \n If you need to exit my program at any time, just press Ctrl + c \n Note: If you press backspace, the prompt will disappear but your answer can still be input for that question. \n Good Luck!')
-prompt(questions)
+fakePrompt(questions) //TODO: CHANGE BACK
   .then(responses => {
     console.log('Great! Thanks for all your help!')
     console.log('Calculating...')
@@ -255,7 +258,8 @@ prompt(questions)
       });
     });
 
-    
+    console.log('YOU ARE AT D')
+
     //create devicesbyGroup
     const devicesByGroup = {};
     const allDevices = [];
@@ -274,8 +278,8 @@ prompt(questions)
     const firstBlDate = moment(2008, 'YYYY');
     const currentBlDate = moment(firstBlDate);
     const firstMsDate = moment(2009, 'YYYY');
-    const lastMsDate = moment(firstMsDate).subtract(1, 'hours');
     const currentMsDate = moment(firstMsDate);
+    const lastMsDate = moment(firstMsDate).subtract(1, 'hours');
 
     const singleRow = firstBlDate;
     const blDateRows = [];
@@ -304,6 +308,7 @@ prompt(questions)
     }
 
 
+    console.log('YOU ARE AT E.')
 
     //Make trend data
     const trends = [];
@@ -323,8 +328,8 @@ prompt(questions)
     // get deviceLevelRoundUps Hh
     reducedEqLevelRoundUpData._OptHr = {};
     reducedEqLevelRoundUpData._StdHr = {};
-    reducedSystemLevelRoundUpDatareducedEqLevelRoundUpData._OptHr = {};
-    reducedSystemLevelRoundUpDatareducedEqLevelRoundUpData._StdHr = {};
+    reducedSystemLevelRoundUpData._OptHr = [];
+    reducedSystemLevelRoundUpData._StdHr = [];
     eqGroups.forEach(eqGroup => {
       reducedEqLevelRoundUpData._OptHr[eqGroup] = [];
       reducedEqLevelRoundUpData._StdHr[eqGroup] = [];
@@ -332,42 +337,43 @@ prompt(questions)
         const optTrendObj = {name: device + '_OptHrHh', avgOrSum: 'sum'};
         const stdTrendObj = {name: device + '_StdHrHh', avgOrSum: 'sum', data: []};
         optTrendObj.data = msHhDateRows.map((hourlyStamp, stampIndex) => {
-          const info = trendsInforeducedEqLevelRoundUpData._OptHr[eqGroup][hourlyStamp.format('MMM')];
+          const info = trendsInfo._OptHr[eqGroup][hourlyStamp.format('MMM')];
           const optValue = getRandomValue(info.min, info.max);
           const stdValue = 1 - optValue;
           const date = hourlyStamp.format('x');
           //std
           if (!reducedEqLevelRoundUpData._StdHr[eqGroup][stampIndex]) reducedEqLevelRoundUpData._StdHr[eqGroup][stampIndex] = {sum: 0, date, avgOrSum: 'sum'};
           reducedEqLevelRoundUpData._StdHr[eqGroup][stampIndex].sum += stdValue;
-          if (!reducedSystemLevelRoundUpDatareducedEqLevelRoundUpData._StdHr[stampIndex]) reducedSystemLevelRoundUpDatareducedEqLevelRoundUpData._StdHr[stampIndex] = {sum: 0, date, avgOrSum: 'sum'};
-          reducedSystemLevelRoundUpDatareducedEqLevelRoundUpData._StdHr[stampIndex].sum += stdValue;
+          if (!reducedSystemLevelRoundUpData._StdHr[stampIndex]) reducedSystemLevelRoundUpData._StdHr[stampIndex] = {sum: 0, date, avgOrSum: 'sum'};
+          reducedSystemLevelRoundUpData._StdHr[stampIndex].sum += stdValue;
           stdTrendObj.data.push(date + ',' + stdValue);
           //opt
           if (!reducedEqLevelRoundUpData._OptHr[eqGroup][stampIndex]) reducedEqLevelRoundUpData._OptHr[eqGroup][stampIndex] = {sum: 0, date, avgOrSum: 'sum'};
           reducedEqLevelRoundUpData._OptHr[eqGroup][stampIndex].sum += optValue;
-          if (!reducedSystemLevelRoundUpDatareducedEqLevelRoundUpData._OptHr[stampIndex]) reducedSystemLevelRoundUpDatareducedEqLevelRoundUpData._OptHr[stampIndex] = {sum: 0, date, avgOrSum: 'sum'};
-          reducedSystemLevelRoundUpDatareducedEqLevelRoundUpData._OptHr[stampIndex].sum += optValue;
+          if (!reducedSystemLevelRoundUpData._OptHr[stampIndex]) reducedSystemLevelRoundUpData._OptHr[stampIndex] = {sum: 0, date, avgOrSum: 'sum'};
+          reducedSystemLevelRoundUpData._OptHr[stampIndex].sum += optValue;
           return date + ',' + optValue;
         });
         trends.push(optTrendObj);
         trends.push(stdTrendObj);
       });
     });
+    console.log('YOU ARE AT F')
 
     reducedEqLevelRoundUpData._MsKw = {};
-    reducedSystemLevelRoundUpDatareducedEqLevelRoundUpData._MsKw = {};
+    reducedSystemLevelRoundUpData._MsKw = [];
     eqGroups.forEach(eqGroup => {
       reducedEqLevelRoundUpData._MsKw[eqGroup] = [];
       devicesByGroup[eqGroup].forEach(device => {
         const trendObj = {name: device + '_MsKwHh', avgOrSum: 'sum'};
         trendObj.data = msHhDateRows.map((hourlyStamp, stampIndex) => {
-          const info = trendsInforeducedEqLevelRoundUpData._MsKw[eqGroup][hourlyStamp.format('MMM')];
+          const info = trendsInfo._MsKw[eqGroup][hourlyStamp.format('MMM')];
           const value = getRandomValue(info.min, info.max);
           const date = hourlyStamp.format('x');
           if (!reducedEqLevelRoundUpData._MsKw[eqGroup][stampIndex]) reducedEqLevelRoundUpData._MsKw[eqGroup][stampIndex] = {sum: 0, date, avgOrSum: 'sum'};
           reducedEqLevelRoundUpData._MsKw[eqGroup][stampIndex].sum += value;
-          if (!reducedSystemLevelRoundUpDatareducedEqLevelRoundUpData._MsKw[stampIndex]) reducedSystemLevelRoundUpDatareducedEqLevelRoundUpData._MsKw[stampIndex] = {sum: 0, date, avgOrSum: 'sum'};
-          reducedSystemLevelRoundUpDatareducedEqLevelRoundUpData._MsKw[stampIndex].sum += value;
+          if (!reducedSystemLevelRoundUpData._MsKw[stampIndex]) reducedSystemLevelRoundUpData._MsKw[stampIndex] = {sum: 0, date, avgOrSum: 'sum'};
+          reducedSystemLevelRoundUpData._MsKw[stampIndex].sum += value;
           return date + ',' + value;
         });
         trends.push(trendObj);
@@ -375,12 +381,13 @@ prompt(questions)
     });
 
 
+    console.log('YOU ARE AT G')
 
     // get chillerDeviceLevelRoundUps Hh
     chillerDeviceLevelRoundUps.forEach(partialTrendName => {
       const avgOrSum = partialTrendName === '_MsTr' ? 'sum' : 'avg';
-      reducedChillerEqLevelRoundUpData[partialTrendName] = {};
-      reducedChillerSystemLevelRoundUpData[partialTrendName] = {};
+      reducedChillerEqLevelRoundUpData[partialTrendName] = [];
+      reducedChillerSystemLevelRoundUpData[partialTrendName] = [];
 
       devicesByGroup.Chillers.forEach(device => {
         const trendObj = {name: device + partialTrendName + 'Hh', avgOrSum};
@@ -402,7 +409,8 @@ prompt(questions)
       });
     });
 
-    
+    console.log('YOU ARE AT H')
+
     //get reducedEqLevelRoundUps (sums)
     reducedEqLevelRoundUps.forEach(partialTrendName => {
       eqGroups.forEach(eqGroup => {
@@ -413,6 +421,7 @@ prompt(questions)
         });
       });
     });
+    console.log('YOU ARE AT I')
 
     //get reducedChillerEqLevelRoundUps (avgs)
     reducedChillerEqLevelRoundUps.forEach(partialTrendName => {
@@ -424,7 +433,8 @@ prompt(questions)
         });
       });
     });
-    
+    console.log('YOU ARE AT J')
+
     // get reducedSystemLevelRoundUps (sums)
     reducedSystemLevelRoundUps.forEach(partialTrendName => {
       trends.push({
@@ -433,6 +443,7 @@ prompt(questions)
         avgOrSum: 'sum'
       });
     });
+    console.log('YOU ARE AT K')
 
     // get reducedChillerSystemLevelRoundUps (sums)
     reducedChillerSystemLevelRoundUps.forEach(partialTrendName => {
@@ -442,17 +453,19 @@ prompt(questions)
         avgOrSum: 'sum'
       });
     });
+    console.log('YOU ARE AT L')
 
-    //get calculatedSystemLevelRoundUps (avgs) Hh
+    //get calculatedSystemLevelRoundUps (avgs) Hh                     
     const sysEffTrendObj = {name: 'System_MsEff' + 'Hh', avgOrSum: 'avg'};
     sysEffTrendObj.data = msHhDateRows.map((hourlyStamp, stampIndex) => {
-      const auxInfo = trendsInfo.System_MsEff[hourlyStamp.format('MMM')];
+      const auxInfo = trendsInfo.System_MsEff.auxillaryAvg[hourlyStamp.format('MMM')];
       const chillerInfo = reducedChillerEqLevelRoundUpData._MsEff[stampIndex]
       const value = (getRandomValue(auxInfo.min, auxInfo.max) + (chillerInfo.sum / chillerInfo.count)) / 2; //avg of aux and chiller avgs for hour
       const date = hourlyStamp.format('x');
       return date + ',' + value;
     });
     trends.push(sysEffTrendObj);
+    console.log('YOU ARE AT M')
 
     const sysOacDryBulbTrendObj = {name: 'System_oacDryBulb' + 'Hh', avgOrSum: 'avg'};
     sysOacDryBulbTrendObj.data = msHhDateRows.map((hourlyStamp, stampIndex) => {
@@ -463,11 +476,16 @@ prompt(questions)
     });
     trends.push(sysOacDryBulbTrendObj);
 
+    console.log('YOU ARE AT N')
 
     /* GATHER ROUND UP TRENDS FOR INTERVALS ABOVE HOURLY */
+                                                                       //TODO: DELETE                                       // const masterHhData = {};
+                                                                                                              // trends.forEach(trend => masterHhData[trend.name] = trend);
+   
     const dailyReductionData = {};
     const monthlyReductionData = {};
     const yearlyReductionData = {};
+
     trends.forEach(trend => {
       const partialTrendName = trend.name.slice(0, -1);
       const dailyTrendName = partialTrendName + 'd';
@@ -478,50 +496,53 @@ prompt(questions)
       const monthlyTrend = {name: monthlyTrendName};  //data prop populated below
       const yearlyTrend = {name: yearlyTrendName};  //data prop populated below
 
-      dailyReductionData[dailyTrendName] = msHdDateRows.map(date => ( { date, data: {sum: 0, count: 0, reduction: undefined} } ));
-      monthlyReductionData[monthlyTrendName] = msHmDateRows.map(date => ( { date, data: {sum: 0, count: 0, reduction: undefined} } ));
-      yearlyReductionData[yearlyTrendName] = msHyDateRows.map(date => ( {date, data: {sum: 0, count: 0, reduction: undefined} } ));
+      dailyReductionData[dailyTrendName] = msHdDateRows.map(date => ( {date, sum: 0, count: 0, reduction: undefined} ));
+      monthlyReductionData[monthlyTrendName] = msHmDateRows.map(date => ( {date, sum: 0, count: 0, reduction: undefined} ));
+      yearlyReductionData[yearlyTrendName] = msHyDateRows.map(date => ( {date, sum: 0, count: 0, reduction: undefined} ));
+      let lastDate = moment(msHhDateRows[0]);
 
-      let lastDay = msHhDateRows[0].subtract(1, 'hour').day();
-      let lastMonth = msHhDateRows[0].subtract(1, 'hour').month();
-      let lastYear = msHhDateRows[0].subtract(1, 'hour').year();
       let dailyIndex = 0;
       let monthlyIndex = 0;
       let yearlyIndex = 0;
       msHhDateRows.forEach((hourlyStamp, stampIndex) => {
-        const currentDay = hourlyStamp.day();
-        const currentMonth = hourlyStamp.month();
-        const currentYear = hourlyStamp.year();
-        if (currentDay !== lastDay) {
-          const lastDateObj = dailyReductionData[dailyTrendName][dailyIndex];
-          lastDateObj.reduction = trend.avgOrSum === 'avg' ? lastDateObj.sum / lastDateObj.count || 0 : lastDateObj.sum;
+        if (hourlyStamp.day() !== lastDate.day()) {
+          const lastDayObj = dailyReductionData[dailyTrendName][dailyIndex];
+          if (!lastDayObj) console.log('lastDayObj is undefined')
+          lastDayObj.reduction = trend.avgOrSum === 'avg' ? lastDayObj.sum / lastDayObj.count || 0 : lastDayObj.sum;
           dailyIndex++;
         }
-        if (currentMonth !== lastMonth) {
-          const lastDateObj = monthlyReductionData[monthlyTrendName][monthlyIndex];
-          lastDateObj.reduction = trend.avgOrSum === 'avg' ? lastDateObj.sum / lastDateObj.count || 0 : lastDateObj.sum;
+        if (hourlyStamp.month() !== lastDate.month()) {
+          const lastMonthObj = monthlyReductionData[monthlyTrendName][monthlyIndex];
+          if (!lastMonthObj) console.log('lastMonthObj is undefined')
+          lastMonthObj.reduction = trend.avgOrSum === 'avg' ? lastMonthObj.sum / lastMonthObj.count || 0 : lastMonthObj.sum;
           monthlyIndex++;
         }
-        if (currentYear !== lastYear) {
-          const lastDateObj = yearlyReductionData[yearlyTrendName][yearlyIndex];
-          lastDateObj.reduction = trend.avgOrSum === 'avg' ? lastDateObj.sum / lastDateObj.count || 0 : lastDateObj.sum;
+        if (hourlyStamp.year() !== lastDate.year()) {
+          const lastYearObj = yearlyReductionData[yearlyTrendName][yearlyIndex];
+          if (!lastYearObj) console.log('lastYearObj is undefined')
+          lastYearObj.reduction = trend.avgOrSum === 'avg' ? lastYearObj.sum / lastYearObj.count || 0 : lastYearObj.sum;
           yearlyIndex++;
         }
+        const hourlyValue = +trend.data[stampIndex].slice(trend.data[stampIndex].indexOf(',') + 1);
         const currentDailyObj = dailyReductionData[dailyTrendName][dailyIndex];
-        currentDailyObj.sum += VALUE;
+        if (!currentDailyObj) console.log('currentDailyObj is undefined')
+        currentDailyObj.sum += hourlyValue;
         currentDailyObj.count++;
         const currentMonthlyObj = monthlyReductionData[monthlyTrendName][monthlyIndex];
-        currentMonthlyObj.sum += VALUE;
+        if (!currentMonthlyObj) console.log('currentMonthlyObj is undefined. monthlyIndex is ' + monthlyIndex)
+        currentMonthlyObj.sum += hourlyValue;
         currentMonthlyObj.count++;
         const currentYearlyObj = yearlyReductionData[yearlyTrendName][yearlyIndex];
-        currentYearlyObj.sum += VALUE;
+        if (!currentYearlyObj) console.log('currentYearlyObj is undefined')
+        currentYearlyObj.sum += hourlyValue;
         currentYearlyObj.count++;
 
+        lastDate = moment(hourlyStamp);
       });
       //final reductions
       const lastDailyObj = dailyReductionData[dailyTrendName][msHdDateRows.length - 1];
-      const lastMonthlyObj = monthlyReductionData[monthlyTrendName][msHdDateRows.length - 1];
-      const lastYearlyObj = yearlyReductionData[yearlyTrendName][msHdDateRows.length - 1];
+      const lastMonthlyObj = monthlyReductionData[monthlyTrendName][msHmDateRows.length - 1];
+      const lastYearlyObj = yearlyReductionData[yearlyTrendName][msHyDateRows.length - 1];
       lastDailyObj.reduction = trend.avgOrSum === 'avg' ? lastDailyObj.sum / lastDailyObj.count || 0 : lastDailyObj.sum;
       lastMonthlyObj.reduction = trend.avgOrSum === 'avg' ? lastMonthlyObj.sum / lastMonthlyObj.count || 0 : lastMonthlyObj.sum;
       lastYearlyObj.reduction = trend.avgOrSum === 'avg' ? lastYearlyObj.sum / lastYearlyObj.count || 0 : lastYearlyObj.sum;
@@ -531,6 +552,7 @@ prompt(questions)
       yearlyTrend.data = yearlyReductionData[yearlyTrendName].map(yearlyObj => yearlyObj.date.format('x') + ',' + yearlyObj.reduction);
       trends.push(dailyTrend, monthlyTrend, yearlyTrend);
     });
+    console.log('YOU ARE AT O')
 
 
 
@@ -558,6 +580,7 @@ prompt(questions)
       });
       trends.push(baselineTrend);
     });
+    console.log('YOU ARE AT P')
 
     //get systemLevelCalculatedTrends
     trends.push({
@@ -568,6 +591,7 @@ prompt(questions)
       name: 'System_CorporateCurrencyExchange',
       data: [singleRow.format('x') + ',' + trendsInfo.System_CorporateCurrencyExchange]
     });
+    console.log('YOU ARE AT Q')
 
     const baselineEffTrend = {name: 'System_BlEffHm'};
     baselineEffTrend.data = monthlyReductionData['System_MsEffHm'].slice(0, 12).map(msData => {
@@ -587,6 +611,7 @@ prompt(questions)
       return projectedDate + ',' + monthlyValue;
     });
     trends.push(projectedEffTrend);
+    console.log('YOU ARE AT R')
 
 
 
@@ -623,4 +648,5 @@ prompt(questions)
 
 
 
-  });
+  })
+  .catch(err => console.error('error: ' + err))
