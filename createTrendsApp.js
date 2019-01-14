@@ -25,19 +25,19 @@ const reducedChillerEqLevelRoundUps = [                                  //TODO:
 const eqLevelCalculatedTrends = [                                        //TODO: (12. once gather Hms, can calculate)
   '_BlKwHm' //based off of '_MsKwHm'
 ];
-const reducedSystemLevelRoundUps = [                                     //TODO: (1. need to add data for Hh in same ways as done for eqLevel trends, & 9. need other roundups)
+const reducedSystemLevelRoundUps = [                                     //TODO: (9. need other roundups)
   'System_MsKw', //sum
   'System_OptHr', //sum
   'System_StdHr', //sum
 ];
-const reducedChillerSystemLevelRoundUps = [                              //TODO: (2. need to add data for Hh in same ways as done for eqLevel trends, & 10. need other roundups)
+const reducedChillerSystemLevelRoundUps = [                              //TODO: (10. need other roundups)
   'System_MsTr' //reduced from chillers' devices round ups  //sum
 ];
-const calculatedSystemLevelRoundUps = [ //needs prompts                  //TODO: (3. need to get data & 11. need roundups)
+const calculatedSystemLevelRoundUps = [ //needs prompts                  //TODO: (11. need roundups)
   'System_MsEff', //reduced from chillers eq level round up plus some extra amount for 'Auxillary Equipment'  //avg
   'System_oacDryBulb' //non-reduced round-up
 ];
-const systemLevelCalculatedTrends = [                                    //TODO: (4. first two can be direct write-ins & 13. 2nd two can be calculated once gathered Hms)
+const systemLevelCalculatedTrends = [                                    //TODO: (13. 2nd two can be calculated once gathered Hms)
   'System_Bur',   //COV   //needs prompt  
   'System_CorporateCurrencyExchange',    //COV    //needs prompt
   'System_BlEffHm',  //based off of 'System_MsEffHm'
@@ -315,10 +315,13 @@ prompt(questions)
 
     const reducedEqLevelRoundUpData = {};
     const reducedChillerEqLevelRoundUpData = {};
+    const reducedSystemLevelRoundUpData = {};
+    const reducedChillerSystemLevelRoundUpData = {};
 
     // get deviceLevelRoundUps Hh
     deviceLevelRoundUps.forEach(partialTrendName => {
       reducedEqLevelRoundUpData[partialTrendName] = {};
+      reducedSystemLevelRoundUpData[partialTrendName] = {};
 
       eqGroups.forEach(eqGroup => {
         reducedEqLevelRoundUpData[partialTrendName][eqGroup] = [];
@@ -328,10 +331,12 @@ prompt(questions)
           trendObj.data = msHhDateRows.map((hourlyStamp, stampIndex) => {
             const info = trendsInfo[partialTrendName][eqGroup][hourlyStamp.format('MMM')];
             const value = getRandomValue(info.min, info.max);
-            if (!reducedEqLevelRoundUpData[partialTrendName][eqGroup][stampIndex]) reducedEqLevelRoundUpData[partialTrendName][eqGroup][stampIndex] = {sum: 0, date: hourlyStamp.format('x')};
+            const date = hourlyStamp.format('x');
+            if (!reducedEqLevelRoundUpData[partialTrendName][eqGroup][stampIndex]) reducedEqLevelRoundUpData[partialTrendName][eqGroup][stampIndex] = {sum: 0, date};
             reducedEqLevelRoundUpData[partialTrendName][eqGroup][stampIndex].sum += value;
-      
-            return hourlyStamp.format('x') + ',' + value;
+            if (!reducedSystemLevelRoundUpData[partialTrendName][stampIndex]) reducedSystemLevelRoundUpData[partialTrendName][stampIndex] = {sum: 0, date};
+            reducedSystemLevelRoundUpData[partialTrendName][stampIndex].sum += value;
+            return date + ',' + value;
           });
           trends.push(trendObj);
         });
@@ -342,17 +347,23 @@ prompt(questions)
     // get chillerDeviceLevelRoundUps Hh
     chillerDeviceLevelRoundUps.forEach(partialTrendName => {
       reducedChillerEqLevelRoundUpData[partialTrendName] = {};
+      reducedChillerSystemLevelRoundUpData[partialTrendName] = {};
 
       devicesByGroup.Chillers.forEach(device => {
         const trendObj = {name: device + partialTrendName + 'Hh'};
         trendObj.data = msHhDateRows.map((hourlyStamp, stampIndex) => {
           const info = trendsInfo[partialTrendName][hourlyStamp.format('MMM')];
           const value = getRandomValue(info.min, info.max);
-          if (!reducedChillerEqLevelRoundUpData[partialTrendName][stampIndex]) reducedChillerEqLevelRoundUpData[partialTrendName][stampIndex] = {sum: 0, count: 0, date: hourlyStamp.format('x')};
+          const date = hourlyStamp.format('x');
+          //avgs for eq level (eff)
+          if (!reducedChillerEqLevelRoundUpData[partialTrendName][stampIndex]) reducedChillerEqLevelRoundUpData[partialTrendName][stampIndex] = {sum: 0, count: 0, date};
           reducedChillerEqLevelRoundUpData[partialTrendName][stampIndex].count++;
           reducedChillerEqLevelRoundUpData[partialTrendName][stampIndex].sum += value;
+          //sums for system level (tR)
+          if (!reducedChillerSystemLevelRoundUpData[partialTrendName][stampIndex]) reducedChillerSystemLevelRoundUpData[partialTrendName][stampIndex] = {sum: 0, date};
+          reducedChillerSystemLevelRoundUpData[partialTrendName][stampIndex].sum += value;
 
-          return hourlyStamp.format('x') + ',' + value;
+          return date + ',' + value;
         });
         trends.push(trendObj);
       });
@@ -362,34 +373,76 @@ prompt(questions)
     //get reducedEqLevelRoundUps (sums)
     reducedEqLevelRoundUps.forEach(partialTrendName => {
       eqGroups.forEach(eqGroup => {
-        const trendObj = {
+        trends.push({
           name: eqGroup + partialTrendName + 'Hh',
           data: reducedEqLevelRoundUpData[partialTrendName][eqGroup].map(hourlyData => hourlyData.date + ',' + hourlyData.sum)
-        };
-        trends.push(trendObj);
+        });
       });
     });
 
     //get reducedChillerEqLevelRoundUps (avgs)
     reducedChillerEqLevelRoundUps.forEach(partialTrendName => {
       eqGroups.forEach(eqGroup => {
-        const trendObj = {
+        trends.push({
           name: eqGroup + partialTrendName + 'Hh',
           data: reducedChillerEqLevelRoundUpData[partialTrendName].map(hourlyData => hourlyData.date + ',' + (hourlyData.sum / hourlyData.count))
-        };
-        trends.push(trendObj);
+        });
+      });
+    });
+    
+    // get reducedSystemLevelRoundUps (sums)
+    reducedSystemLevelRoundUps.forEach(partialTrendName => {
+      trends.push({
+        name: 'System' + partialTrendName + 'Hh',
+        data: reducedSystemLevelRoundUpData[partialTrendName].map(hourlyData => hourlyData.date + ',' + hourlyData.sum)
       });
     });
 
+    // get reducedChillerSystemLevelRoundUps (sums)
+    reducedChillerSystemLevelRoundUps.forEach(partialTrendName => {
+      trends.push({
+        name: 'System' + partialTrendName + 'Hh',
+        data: reducedChillerSystemLevelRoundUpData[partialTrendName].map(hourlyData => hourlyData.date + ',' + hourlyData.sum)
+      });
+    });
 
-    
+    //get calculatedSystemLevelRoundUps
+    const sysEffTrendObj = {name: 'System_MsEff' + 'Hh'};
+    sysEffTrendObj.data = msHhDateRows.map((hourlyStamp, stampIndex) => {
+      const auxInfo = trendsInfo.System_MsEff[hourlyStamp.format('MMM')];
+      const chillerInfo = reducedChillerEqLevelRoundUpData._MsEff[stampIndex]
+      const value = (getRandomValue(auxInfo.min, auxInfo.max) + (chillerInfo.sum / chillerInfo.count)) / 2; //avg of aux and chiller avgs for hour
+      const date = hourlyStamp.format('x');
+      return date + ',' + value;
+    });
+    trends.push(sysEffTrendObj);
+
+    const sysOacDryBulbTrendObj = {name: 'System_oacDryBulb' + 'Hh'};
+    sysOacDryBulbTrendObj.data = msHhDateRows.map((hourlyStamp, stampIndex) => {
+      const info = trendsInfo.System_oacDryBulb[hourlyStamp.format('MMM')]
+      const value = getRandomValue(info.min, info.max);
+      const date = hourlyStamp.format('x');
+      return date + ',' + value;
+    });
+    trends.push(sysOacDryBulbTrendObj);
+
+
+    //get first 2 systemLevelCalculatedTrends
+    trends.push({
+      name: 'System_Bur',
+      data: [singleRow.format('x') + ',' + trendsInfo.System_Bur]
+    });
+    trends.push({
+      name: 'System_CorporateCurrencyExchange',
+      data: [singleRow.format('x') + ',' + trendsInfo.System_CorporateCurrencyExchange]
+    });
 
 
 
 
 
 
-    //TODO: MAKE TRENDS INTO CSVs :)
+    //TODO: MAKE TRENDS INTO CSVs :) #14
     //MAKE CSVs
     trends.forEach(trend => {
       //WRITE A CSV FILE WITH NAME AS TITLE AND DATA AS CONTENT
