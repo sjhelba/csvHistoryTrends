@@ -16,4 +16,3 @@ function createCSVs(arrOfRequests) {
 module.exports = {
   createCSVs
 }
-
