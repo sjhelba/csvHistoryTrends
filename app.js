@@ -4,7 +4,7 @@ const fs = require('fs');
 const moment = require('moment')
 const {createCSVs} = require('./writeCSVs');
 const {prompt} = require('./prompts');
-// const {fakePrompt} = require('./fakePromptForTesting');
+const {fakePrompt} = require('./fakePromptForTesting');
 
 let responses;
 const getRandomValueExclusiveOfMax = (min, max) => Math.random() * (max - min) + min;
@@ -218,16 +218,20 @@ chillerDeviceLevelRoundUps.forEach(trend => { //i
 
 
 console.log('Hey there! Welcome to the Create Your Own History Trends App!\n\nI have a lot of questions for you. Take your time because you cannot go back! \n If you need to exit my program at any time, just press Ctrl + c \n Note: If you press backspace, the prompt will disappear but your answer can still be input for that question. \n Good Luck!')
-prompt(questions)
+fakePrompt(questions)
   .then(answers => {
     console.log('Great! Thanks for all your help, Drew!\nFirst I\'ll save your answers...')
     responses = answers;
-    return fs.writeFile('./YourAnswers.csv', answers.join('\n'), err => {
-      if (err) throw err;
+    return new Promise(function(resolve, reject) {
+      fs.writeFile('./YourAnswers.csv', answers.join('\n'), err => {
+        resolve('written');
+        reject('rejected');
+        if (err) throw err;
+      })
     });
   })
   .then(() => {
-    console.log('Your answers have been saved! Now calculating your data...')
+    console.log('Now calculating your data...');
 
 
     //responses
