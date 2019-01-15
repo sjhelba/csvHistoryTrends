@@ -7,8 +7,8 @@ const {prompt} = require('./prompts');
 // const {fakePrompt} = require('./fakePromptForTesting');
 
 let responses;
-const getRandomValueInclusiveOfMaxExclusiveOfMax = (min, max) => Math.random() * (max - min) + min;
-const getRandomValueInclusiveOfMaxInclusiveOfMax = (min, max) => getRandomValueInclusiveOfMaxExclusiveOfMax(min, max) === min ? max : getRandomValueInclusiveOfMaxExclusiveOfMax(min, max);
+const getRandomValueExclusiveOfMax = (min, max) => Math.random() * (max - min) + min;
+const getRandomValueInclusiveOfMax = (min, max) => getRandomValueExclusiveOfMax(min, max) === min ? max : getRandomValueExclusiveOfMax(min, max);
 
 const deviceLevelRoundUps = [ //needs prompts                           
   '_OptHr', //sum
