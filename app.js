@@ -1,12 +1,14 @@
 'use strict';
 
+const fs = require('fs');
 const moment = require('moment')
 const {createCSVs} = require('./writeCSVs');
 const {prompt} = require('./prompts');
 // const {fakePrompt} = require('./fakePromptForTesting');
 
-
-const getRandomValue = (min, max) => Math.random() * (max - min + 1) + min;
+let responses;
+const getRandomValueInclusiveOfMaxExclusiveOfMax = (min, max) => Math.random() * (max - min) + min;
+const getRandomValueInclusiveOfMaxInclusiveOfMax = (min, max) => getRandomValueInclusiveOfMaxExclusiveOfMax(min, max) === min ? max : getRandomValueInclusiveOfMaxExclusiveOfMax(min, max);
 
 const deviceLevelRoundUps = [ //needs prompts                           
   '_OptHr', //sum
@@ -217,8 +219,16 @@ chillerDeviceLevelRoundUps.forEach(trend => { //i
 
 console.log('Hey there! Welcome to the Create Your Own History Trends App!\n\nI have a lot of questions for you. Take your time because you cannot go back! \n If you need to exit my program at any time, just press Ctrl + c \n Note: If you press backspace, the prompt will disappear but your answer can still be input for that question. \n Good Luck!')
 prompt(questions)
-  .then(responses => {
-    console.log('Great! Thanks for all your help, Drew!\nCalculating...')
+  .then(answers => {
+    console.log('Great! Thanks for all your help, Drew!\nFirst I\'ll save your answers...')
+    responses = answers;
+    return fs.writeFile('./YourAnswers.csv', answers.join('\n'), err => {
+      if (err) throw err;
+    });
+  })
+  .then(() => {
+    console.log('Your answers have been saved! Now calculating your data...')
+
 
     //responses
     const numOfDevicesPerEqGroup = +responses[0];
@@ -334,7 +344,7 @@ prompt(questions)
         const stdTrendObj = {name: device + '_StdHrHh', avgOrSum: 'sum', data: []};
         optTrendObj.data = msHhDateRows.map((hourlyStamp, stampIndex) => {
           const info = trendsInfo._OptHr[eqGroup][hourlyStamp.format('MMM')];
-          const optValue = getRandomValue(info.min, info.max);
+          const optValue = getRandomValueInclusiveOfMax(info.min, info.max);
           const stdValue = 1 - optValue;
           const date = hourlyStamp.format('x');
           //std
@@ -364,7 +374,7 @@ prompt(questions)
         const trendObj = {name: device + '_MsKwHh', avgOrSum: 'sum'};
         trendObj.data = msHhDateRows.map((hourlyStamp, stampIndex) => {
           const info = trendsInfo._MsKw[eqGroup][hourlyStamp.format('MMM')];
-          const value = getRandomValue(info.min, info.max);
+          const value = getRandomValueInclusiveOfMax(info.min, info.max);
           const date = hourlyStamp.format('x');
           if (!reducedEqLevelRoundUpData._MsKw[eqGroup][stampIndex]) reducedEqLevelRoundUpData._MsKw[eqGroup][stampIndex] = {sum: 0, date, avgOrSum: 'sum'};
           reducedEqLevelRoundUpData._MsKw[eqGroup][stampIndex].sum += value;
@@ -388,7 +398,7 @@ prompt(questions)
         const trendObj = {name: device + partialTrendName + 'Hh', avgOrSum};
         trendObj.data = msHhDateRows.map((hourlyStamp, stampIndex) => {
           const info = trendsInfo[partialTrendName][hourlyStamp.format('MMM')];
-          const value = getRandomValue(info.min, info.max);
+          const value = getRandomValueInclusiveOfMax(info.min, info.max);
           const date = hourlyStamp.format('x');
           //avgs for eq level (eff)
           if (!reducedChillerEqLevelRoundUpData[partialTrendName][stampIndex]) reducedChillerEqLevelRoundUpData[partialTrendName][stampIndex] = {sum: 0, count: 0, date, avgOrSum: 'avg'};
@@ -450,7 +460,7 @@ prompt(questions)
     sysEffTrendObj.data = msHhDateRows.map((hourlyStamp, stampIndex) => {
       const auxInfo = trendsInfo.System_MsEff.auxillaryAvg[hourlyStamp.format('MMM')];
       const chillerInfo = reducedChillerEqLevelRoundUpData._MsEff[stampIndex]
-      const value = (getRandomValue(auxInfo.min, auxInfo.max) + (chillerInfo.sum / chillerInfo.count)) / 2; //avg of aux and chiller avgs for hour
+      const value = (getRandomValueInclusiveOfMax(auxInfo.min, auxInfo.max) + (chillerInfo.sum / chillerInfo.count)) / 2; //avg of aux and chiller avgs for hour
       const date = hourlyStamp.format('x');
       return date + ',' + value;
     });
@@ -459,7 +469,7 @@ prompt(questions)
     const sysOacDryBulbTrendObj = {name: 'System_oacDryBulb' + 'Hh', avgOrSum: 'avg'};
     sysOacDryBulbTrendObj.data = msHhDateRows.map((hourlyStamp, stampIndex) => {
       const info = trendsInfo.System_oacDryBulb[hourlyStamp.format('MMM')]
-      const value = getRandomValue(info.min, info.max);
+      const value = getRandomValueInclusiveOfMax(info.min, info.max);
       const date = hourlyStamp.format('x');
       return date + ',' + value;
     });
@@ -547,7 +557,7 @@ prompt(questions)
       baselineTrend.data = monthlyReductionData[eqGroup + '_MsKwHm'].slice(0, 12).map(msData => {
         const minToAdd = msData.reduction * 0; // 0.05 is expected, but testing at 0
         const maxToAdd = msData.reduction * 0.1;
-        const monthlyValue = msData.reduction + getRandomValue(minToAdd, maxToAdd);
+        const monthlyValue = msData.reduction + getRandomValueInclusiveOfMax(minToAdd, maxToAdd);
         const baselineDate = blDateRows[msData.date.get('month')].format('x');
         return baselineDate + ',' + monthlyValue;
       });
@@ -569,7 +579,7 @@ prompt(questions)
     baselineEffTrend.data = monthlyReductionData['System_MsEffHm'].slice(0, 12).map(msData => {
       const minToAdd = msData.reduction * 0; // 0.05 is expected, but testing at 0
       const maxToAdd = msData.reduction * 0.1;
-      const monthlyValue = msData.reduction + getRandomValue(minToAdd, maxToAdd);
+      const monthlyValue = msData.reduction + getRandomValueInclusiveOfMax(minToAdd, maxToAdd);
       const baselineDate = blDateRows[msData.date.get('month')].format('x');
       return baselineDate + ',' + monthlyValue;
     });
@@ -578,7 +588,7 @@ prompt(questions)
     projectedEffTrend.data = monthlyReductionData['System_MsEffHm'].slice(0, 12).map(msData => {
       const minToAdd = msData.reduction * 0; // 0.05 is expected, but testing at 0
       const maxToAdd = msData.reduction * 0.05;
-      const monthlyValue = msData.reduction + getRandomValue(minToAdd, maxToAdd);
+      const monthlyValue = msData.reduction + getRandomValueInclusiveOfMax(minToAdd, maxToAdd);
       const projectedDate = blDateRows[msData.date.get('month')].format('x');
       return projectedDate + ',' + monthlyValue;
     });
