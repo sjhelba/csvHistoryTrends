@@ -7,6 +7,9 @@ const {prompt} = require('./prompts');
 // const {fakePrompt} = require('./fakePromptForTesting');
 
 let responses;
+let pastResponses;
+const getLastAnswer = index => pastResponses ? pastResponses[index] || 0 : 0;  
+
 const getRandomValueExclusiveOfMax = (min, max) => Math.random() * (max - min) + min;
 const getRandomValueInclusiveOfMax = (min, max) => getRandomValueExclusiveOfMax(min, max) === min ? max : getRandomValueExclusiveOfMax(min, max);
 
@@ -187,41 +190,67 @@ trendsInfo.System_CorporateCurrencyExchange = {
 
 const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const eqGroups = ['Chillers', 'Towers', 'Pcwps', 'Scwps', 'Twps'];
-const questions = ['How many devices would you like to create per equipment group? ']; // 0
-questions.push('What should the blended utility rate be? '); //1
-questions.push('What should the currency exchange rate be? '); //2
-months.forEach(month => {
-  questions.push('What should the MIN efficiency for \"Auxillary Equipment\" (anything other than chillers) at the system level be for one hour in ' + month + '? ');  //a
-  questions.push('What should the MAX efficiency for \"Auxillary Equipment\" (anything other than chillers) at the system level be for one hour in ' + month + '? ');  //b
-});
-months.forEach(month => {
-  questions.push('What should the MIN System_oacDryBulbHh be for one hour in ' + month + '? ');  //c
-  questions.push('What should the MAX System_oacDryBulbHh be for one hour in ' + month + '? ');  //d
-});
-deviceLevelRoundUps.filter((trend, trendIndex) => trendIndex !== 1).forEach(trend => {  //g     //ignoring stdHr
-  eqGroups.forEach(eqGroup => { //f
-    const singularGroupName = eqGroup.slice(0, -1);
-    months.forEach(month => { //e
-      questions.push('What should the MIN ' + trend + ' be for a single ' + singularGroupName + ' device ' + ' for one hour in ' + month + '? ');  //0th trend, 0th group, 1st month ... 0th trend, 1st group, 0th month ...
-      questions.push('What should the MAX ' + trend + ' be for a single ' + singularGroupName + ' device ' + ' for one hour in ' + month + '? ');
+
+
+function getQuestions(lastAnswers){
+  pastResponses = lastAnswers;
+  let index = 3
+
+  //questions list
+  const questions = ['How many devices would you like to create per equipment group? [' + getLastAnswer(0) + ']  ']; // 0
+  questions.push('What should the blended utility rate be? [' + getLastAnswer(1) + ']  '); //1
+  questions.push('What should the currency exchange rate be? [' + getLastAnswer(2) + ']  '); //2
+  months.forEach(month => {
+    questions.push('What should the MIN efficiency for \"Auxillary Equipment\" (anything other than chillers) at the system level be for one hour in ' + month + '? [' + getLastAnswer(index) + ']  ');  //a
+    index++;
+    questions.push('What should the MAX efficiency for \"Auxillary Equipment\" (anything other than chillers) at the system level be for one hour in ' + month + '? [' + getLastAnswer(index) + ']  ');  //b
+    index++;
+  });
+  months.forEach(month => {
+    questions.push('What should the MIN System_oacDryBulbHh be for one hour in ' + month + '? [' + getLastAnswer(index) + ']  ');  //c
+    index++;
+    questions.push('What should the MAX System_oacDryBulbHh be for one hour in ' + month + '? [' + getLastAnswer(index) + ']  ');  //d
+    index++;
+  });
+  deviceLevelRoundUps.filter((trend, trendIndex) => trendIndex !== 1).forEach(trend => {  //g     //ignoring stdHr
+    eqGroups.forEach(eqGroup => { //f
+      const singularGroupName = eqGroup.slice(0, -1);
+      months.forEach(month => { //e
+        questions.push('What should the MIN ' + trend + ' be for a single ' + singularGroupName + ' device ' + ' for one hour in ' + month + '? [' + getLastAnswer(index) + ']  ');  //0th trend, 0th group, 1st month ... 0th trend, 1st group, 0th month ...
+        index++;
+        questions.push('What should the MAX ' + trend + ' be for a single ' + singularGroupName + ' device ' + ' for one hour in ' + month + '? [' + getLastAnswer(index) + ']  ');
+        index++;
+      });
     });
   });
-});
-chillerDeviceLevelRoundUps.forEach(trend => { //i
-  months.forEach(month => { //h
-    questions.push('What should the MIN ' + trend + ' be for a single chiller device ' + ' for one hour in ' + month + '? ');
-    questions.push('What should the MAX ' + trend + ' be for a single chiller device ' + ' for one hour in ' + month + '? ');
+  chillerDeviceLevelRoundUps.forEach(trend => { //i
+    months.forEach(month => { //h
+      questions.push('What should the MIN ' + trend + ' be for a single chiller device ' + ' for one hour in ' + month + '? [' + getLastAnswer(index) + ']  ');
+      index++;
+      questions.push('What should the MAX ' + trend + ' be for a single chiller device ' + ' for one hour in ' + month + '? [' + getLastAnswer(index) + ']  ');
+      index++;
+    });
   });
-});
+
+  return questions;
+}
 
 
-
-
-console.log('Hey there! Welcome to the Create Your Own History Trends App!\n\nI have a lot of questions for you. Take your time because you cannot go back! \n If you need to exit my program at any time, just press Ctrl + c \n Note: If you press backspace, the prompt will disappear but your answer can still be input for that question. \n Good Luck!')
-prompt(questions)
+console.log('Hey there! Welcome to the Create Your Own History Trends App!\n\nI have a lot of questions for you. Take your time because you cannot go back! \n\n\n NOTES:\n1. If you press backspace, the prompt will disappear but your answer can still be input for that question. \n2. If you need to exit my program at any time, just press Ctrl + c \n3. If you press enter without a response, the default answer (indicated in brackets[]) will be input instead.\nThe "default answer" will be the previous answer saved for that question, else 0 if no previous answers were saved.\n Good Luck!')
+return new Promise(function(resolve, reject){
+  fs.readFile('./YourAnswers.csv', 'utf8', (error, data) => {
+    if (error) return reject('');
+    return resolve(data.split('\n'));
+  });
+})  
+  .then(lastAnswers => prompt(getQuestions(lastAnswers)))
+  .catch(() => prompt(getQuestions()))
   .then(answers => {
     console.log('Great! Thanks for all your help, Drew!\nFirst I\'ll save your answers...')
+
+    answers = answers.map((answer, answerIndex) => answer === '' ? getLastAnswer(answerIndex) : answer);
     responses = answers;
+    
     return new Promise(function(resolve, reject) {
       fs.writeFile('./YourAnswers.csv', answers.join('\n'), err => {
         resolve('written');
