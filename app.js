@@ -493,7 +493,7 @@ return new Promise(function(resolve, reject){
     sysEffTrendObj.data = msHhDateRows.map((hourlyStamp, stampIndex) => {
       const auxInfo = trendsInfo.System_MsEff.auxillaryAvg[hourlyStamp.format('MMM')];
       const chillerInfo = reducedChillerEqLevelRoundUpData._MsEff[stampIndex]
-      const value = (getRandomValueInclusiveOfMax(auxInfo.min, auxInfo.max) + (chillerInfo.sum / chillerInfo.count)) / 2; //avg of aux and chiller avgs for hour
+      const value = getRandomValueInclusiveOfMax(auxInfo.min, auxInfo.max) + (chillerInfo.sum / chillerInfo.count); //sum aux and chiller eff for hour
       const date = hourlyStamp.format('x');
       return date + ',' + value;
     });
